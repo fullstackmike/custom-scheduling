@@ -1,0 +1,562 @@
+<?php
+use Drupal\Component\Utility\Html;
+use Drupal\image\Entity\ImageStyle;
+use Drupal\paragraphs\Entity\Paragraph;
+use Drupal\node\Entity\Node;
+use Drupal\node\NodeViewBuilder;
+use Drupal\Core\Render\Element;
+use Drupal\node\Entity;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\Core\Form\FormStateInterface;
+
+function ipm_scheduling_page_attachments(array &$page) {
+  /*$paragraph = Paragraph::create(['type' => 'scheduling_optionality']);
+  $paragraph->set('field_scheduling_data', serialize($serialize_array));
+  $paragraph->isNew();
+  $paragraph->save();
+  $node = Node::load(187);
+  //$current = $node->get('field_scheduling_option')->getValue();
+  $current = array(
+    'target_id' => $paragraph->id(),
+    'target_revision_id' => $paragraph->getRevisionId(),
+  );
+  $node->set('field_scheduling_option', $current);
+  $node->save();*/
+  $page['#attached']['library'][] = 'ipm_scheduling/doc-asap';
+
+  /*$scripts = [];
+  $result = _mysql_select();
+  foreach ($result as $record) {
+    if (!empty($record->arguments)) {
+      $arguments = unserialize($record->arguments);
+      if (!empty($arguments['script'])) {
+        $scripts = array_merge($scripts, explode(',', $arguments['script']));
+      }
+    }
+  }
+  if (!empty($scripts)) {
+    foreach ($scripts as $script) {
+      $page['#attached']['library'][] = $script;
+    }
+  }*/
+}
+
+function ipm_scheduling_views_pre_render(\Drupal\views\ViewExecutable $view) {
+    if(!isset($view->live_preview)){ // this variable is defined and TRUE when editing and previewing results
+        switch ($view->element['#name']) {
+            case "physicians":
+                switch ($view->current_display) {
+                    case "block_1":
+                        $current_uri = \Drupal::request()->getRequestUri();
+                        $current_node = \Drupal::routeMatch()->getParameter('node'); // returns current node, including revised version
+                        $version_to_serve = '';
+                        if ($current_node instanceof \Drupal\node\NodeInterface && strpos($current_uri, '/latest') !== false) {
+                            $version_to_serve = $current_node;
+                        }
+
+                        foreach ($view->result as $i => $row) {
+                            $show_cta = true;
+                            if ($version_to_serve === ''){
+                                $version_to_serve = $row->_entity; // if latest version was not loaded, running the rest as is
+                            }
+                            if (!empty($version_to_serve)) {
+                                if ($version_to_serve->get('nid') !== null) {
+                                    //$row->docasap_button = process_docasap_field($row);
+                                    $row->docasap_button = process_scheduling_optionality_field($row);
+                                }
+                            }
+                        }
+                        break;
+                    case "block_2":
+                    case "page_2":
+                    case "page_1":
+                        foreach ($view->result as $i => $row) {
+                            $show_cta = true;
+                            if (!empty($row->_entity)) {
+                                if ($row->_entity->get('nid') !== null) {
+                                  //$row->docasap_button = process_docasap_field($row);
+                                  $row->docasap_button = process_scheduling_optionality_field($row);
+                                }
+                            }
+
+                        }
+                        break;
+                }
+                break;
+            case "locations":
+                switch ($view->current_display) {
+                    case "block_1":
+                        foreach ($view->result as $i => $row) {
+                          $practice_id = '';
+                          $row->type = 'location';
+                          $view->result[$i]->field_field_docasap_button[0]['rendered']['#markup'] = process_scheduling_optionality_field($row);
+                            /*if (!empty($row->_entity)) {
+                                if ($row->_entity->get('field_docasap_practice_id') !== null) {
+                                        $practice_id_array = $row->_entity->get('field_docasap_practice_id')->getValue();
+                                    if (isset($practice_id_array[0]['value'])) {
+                                        $practice_id = $practice_id_array[0]['value'];
+                                    }
+                                    if (!empty($practice_id)) {
+                                      $view->result[$i]->field_field_docasap_button[0]['rendered']['#markup'] = set_docasap_id($practice_id,'key_prac_id',2, 'Book Appointment');
+                                    }
+                                }
+                            }*/
+                        }
+                        break;
+                    case "locations_detail":
+                        foreach ($view->result as $i => $row) {
+                          $row->type = 'location';
+                          $view->result[$i]->field_field_docasap_button[0]['rendered']['#markup'] = process_scheduling_optionality_field($row);
+
+                            /*$practice_id = '';
+                            if (!empty($row->_entity)) {
+                                // Book Appointment Button is not part of the comp and not included in views-view-fields--locations-detail.html.twig
+                                if ($row->_entity->get('field_docasap_practice_id') !== null) {
+                                        $practice_id_array = $row->_entity->get('field_docasap_practice_id')->getValue();
+                                    if (isset($practice_id_array[0]['value'])) {
+                                        $practice_id = $practice_id_array[0]['value'];
+                                    }
+                                    if (!empty($practice_id)) {
+                                      //$doc_args = set_docasap_id($practice_id);
+                                      $view->result[$i]->field_field_docasap_button[0]['rendered']['#markup'] = set_docasap_id($practice_id,'key_prac_id',2, 'Book Appointment');
+                                    }
+                                }
+                            }*/
+                        }
+                        break;
+                    case "block_2":
+                        /*
+                         * Loading latest version of the Physician:
+                         */
+                        $current_uri = \Drupal::request()->getRequestUri();
+                        $current_node = \Drupal::routeMatch()->getParameter('node'); // returns current node, including revised version
+                        $version_to_serve = '';
+                        if ($current_node instanceof \Drupal\node\NodeInterface && strpos($current_uri, '/latest') !== false) {
+                            $version_to_serve = $current_node;
+                        }
+                        foreach ($view->result as $i => $row) {
+                          $row->type = 'location';
+                          $view->result[$i]->field_field_docasap_button[0]['rendered']['#markup'] = process_scheduling_optionality_field($row);
+                          /*if ($version_to_serve === ''){
+                              $version_to_serve = $row->_entity; // if latest version was not loaded, running the rest as is
+                          }
+                          if (!empty($version_to_serve)) {
+                              if ($version_to_serve->get('field_docasap_practice_id') !== null) {
+                                  $practice_id_array = $version_to_serve->get('field_docasap_practice_id')->getValue();
+                                  if (isset($practice_id_array[0]['value'])) {
+                                      $practice_id = $practice_id_array[0]['value'];
+                                  }
+                                  if (!empty($practice_id)) {
+                                    //set docasap ID
+                                    //$doc_args = set_docasap_id($practice_id);
+                                    $view->result[$i]->field_field_docasap_button[0]['rendered']['#markup'] = set_docasap_id($practice_id,'key_prac_id',2, 'Book Appointment');
+                                  }
+                              }
+                          }*/
+                        }
+                        break;
+                }
+                break;
+        }
+    }
+
+}
+
+function ipm_scheduling_theme($existing, $type, $theme, $path) {
+  return array(
+    'scheduling_option_block' => [
+      'variables' => [
+        'button' => NULL,
+      ],
+    ],
+  );
+}
+
+function ipm_scheduling_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  switch($form_id) {
+    case 'node_physician_edit_form':
+    case 'node_physician_form':
+    case 'node_location_edit_form':
+    case 'node_location_form':
+      $form['#validate'][] = 'ipm_scheduling_node_form_validate';
+      //$form['#submit'][] = 'ipm_scheduling_node_form_submit';
+      //array_unshift($form['actions']['submit']['#submit'], 'ipm_scheduling_node_form_submit');
+      break;
+  }
+}
+
+function ipm_scheduling_node_form_validate(array $form, FormStateInterface $form_state) {
+  $argument_array = [];
+  $option = $form_state->getValue('field_scheduling_option');
+  $soid = $option[0]['subform']['field_scheduling_data_wrapper'];
+  $data = $option[0]['subform']['field_scheduling_data'][0]['value'];
+  $option[0]['subform']['field_scheduling_data'][0]['value'] = serialize($option[0]['subform']['field_scheduling_data'][0]['value']);
+  if (!empty($option[0]['argument_fields'])) {
+    $argument_fields = unserialize($option[0]['argument_fields']);
+  }
+  if (!empty($soid)) {
+    if (is_array($argument_fields[$soid])) {
+      foreach($argument_fields[$soid] AS $arg) {
+        $argument_array[] =  $option[0]['field_so' . $soid . '_arg_' . $arg];
+      }
+    }
+  }
+  $submit = [
+    'soid' => $soid,
+    'arguments' => $argument_array
+  ];
+  $option[0]['subform']['field_scheduling_data'][0]['value'] = serialize($submit);
+  $form_state->setValue('field_scheduling_option', $option);
+}
+
+function ipm_scheduling_field_widget_entity_reference_paragraphs_form_alter(&$element, &$form_state, $context) {
+  //Note that if you are using the "Paragraphs EXPERIMENTAL" widget instead of "Paragraphs Classic", then the widget type is just paragraphs instead of entity_reference_paragraphs
+  switch ($element['#paragraph_type']) {
+    case 'scheduling_optionality':
+      //grab field and deserialize them and associate them to values for the selected option
+      $option_array = [];
+      $form_array = [];
+      $arg_array = [];
+      $data = [];
+      $default_value = 0;
+      $data_load = $element['subform']['field_scheduling_data']['widget'][0]['value']['#default_value'];
+      $default_value = $data_load;
+      if (!is_numeric($data_load)) {
+        $data = unserialize($data_load);
+        $default_value = $data['soid'];
+      }
+      $result = _mysql_select();
+      foreach ($result as $record) {
+        if (!empty($record->arguments)) {
+          $fields = unserialize($record->arguments);
+        }
+        $option_array[$record->soid] = $record->label;
+        //build forms for each option
+        if (!empty($fields)) {
+          foreach ($fields['arguments'] as $key => $arg) {
+            if (!empty($arg)) {
+              $default = "";
+              if ($default_value == $record->soid) {
+                if (is_string($data['arguments'][$key])) {
+                  $default = $data['arguments'][$key];
+                }
+              }
+              $form_array[$record->soid][] = [
+                'title' => $arg,
+                'default' => $default,
+              ];
+            }
+          }
+        }
+      }
+      //get argument labels
+      foreach($form_array AS $formkey => $formarguments) {
+        $arg_array[$formkey] = [];
+        foreach($formarguments AS $argkey => $arg) {
+          $string_array = ["/[ .()-]/i"];
+          $arg_machine_name = preg_replace($string_array, "", strtolower($arg['title']));
+          $element['field_so' . $formkey . '_arg_' . $arg_machine_name] = [
+            '#type' => 'textfield',
+            '#title' => $arg['title'],
+            //'#attributes' => array('class' => array('ipm_scheduling_form_element','form_'.$formkey)),
+            '#default_value' => $arg['default'],
+            '#wrapper_attributes' => ['class' => array('ipm_scheduling_form_element','form_'.$formkey)],
+            //'#markup' => 'field_so' . $formkey . '_arg_' . $arg_machine_name,
+          ];
+          $arg_array[$formkey][] = $arg_machine_name;
+          //write JS to hide form elements based on selection
+        }
+      }
+      if (!empty($arg_array)) {
+        $element['argument_fields'] = [
+          '#type' => 'hidden',
+          '#value' => serialize($arg_array),
+        ];
+      }
+      $element['subform']['field_scheduling_data']['#type'] = 'select';
+      $element['subform']['field_scheduling_data']['#options'] = $option_array;
+      $element['subform']['field_scheduling_data']['#default_value'] = $default_value;
+      $element['subform']['field_scheduling_data']['#attached']['library'][] = "ipm_scheduling/admin_js";
+      // @var $paragraph \Drupal\paragraphs\Entity\Paragraph */
+      // $paragraph = $form_state->get('paragraph');
+      // $delta = $context['delta'];
+      //do magic
+      //get cached options
+      //update select list with labels
+      //get current data if exists
+      //display customization options
+      //alter actual submission to save scheduling_data : https://www.drupal.org/node/2420295
+      break;
+  }
+}
+
+function ipm_scheduling_preprocess_paragraph(&$variables) {
+  $twig_array = [];
+  $paragraph = $variables['paragraph'];
+  $paragraph_type = $variables['paragraph']->getType();
+  $parentBundle = $paragraph->getParentEntity()->bundle();
+  switch ($paragraph_type) {
+    case 'scheduling_option':
+      $title = $paragraph->get('field_title')->getValue();
+      if (is_array($title)) {
+        $twig_array['title'] = $title[0]['value'];
+      }
+      break;
+
+  }
+
+  $variables['twig_object'] = $twig_array;
+
+}
+
+function process_scheduling_optionality_field($row) {
+  $output = "";
+  $class_name = 'find-doc';
+  $primary_specialty = "";
+  $exclusions= [];
+  $excluded_specialty = theme_get_setting('fad_excluded_specialties');
+  $option_fields = [];
+  $target_string = "_self";
+  if (!empty($row->_entity)) {
+    $option = $row->_entity->get('field_scheduling_option');
+    $nid = $row->_entity->get('nid')->getValue();
+    if (!empty($excluded_specialty)) {
+      foreach ($excluded_specialty AS $key => $specialty) {
+        if (!empty($specialty)) {
+          $exclusions[] = $specialty;
+        }
+      }
+    }
+    //get specialties
+    $node = Node::load($nid[0]['value']);
+  } else {
+    if (is_array($row)) {
+      $associated_option = $row;
+    } else {
+      $associated_option = $row->associated_option;
+    }
+    $class_name = "";
+  }
+
+  if (empty($row->type) && !empty($node)) {
+    $physician_specialty_array = $node->get('field_specialities')->getValue();
+    foreach ($physician_specialty_array as $key => $specialty) {
+      if (isset($specialty['target_id'])) {
+        $term = \Drupal\taxonomy\Entity\Term::load($specialty['target_id']);
+        if (is_object($term)) {
+          $term_name = $term->get('name')->getValue();
+          $specialty_output[$key]['term'] = $term_name[0]['value'];
+          if (!empty($term_name[0]['value'])) {
+            $primary_specialty = $term_name[0]['value'];
+            break;
+          }
+        }
+      }
+    }
+  }
+  if (!in_array($primary_specialty, $exclusions)) {
+    if (!empty($option)) {
+      $list = $option->getValue('list');
+    }
+    if (!empty($list[0]['target_id'])) {
+      $paragraph_id = $list[0]['target_id'];
+    }
+    if (!empty($paragraph_id)) {
+      $paragraph = \Drupal\paragraphs\Entity\Paragraph::load($paragraph_id);
+      $data = $paragraph->get('field_scheduling_data')->getValue();
+      if (!empty($data[0]['value'])) {
+        if (!is_numeric($data[0]['value'])) {
+          $associated_option = unserialize($data[0]['value']);
+        }
+      }
+    }
+    if (!empty($associated_option)) {
+      $option_fields = [];
+      if (!empty($associated_option['soid'])) {
+        $soid = $associated_option['soid'];
+      }
+      if (!empty($associated_option['arguments'])) {
+        $option_fields = $associated_option['arguments'];
+      }
+      $args = [
+        'option_id' => $soid,
+      ];
+      $schedule_option = _get_schedule_option_array($args, $soid);
+      $base_trigger = $schedule_option['fields']['trigger'];
+      if (!empty($schedule_option['fields']['button_label'])) {
+        $label = $schedule_option['fields']['button_label'];
+      }
+      if (!empty($schedule_option['fields']['button_style'])) {
+        $class_name = $schedule_option['fields']['button_style'];
+      }
+      //hack to adjust trigger for doc asap location vs physician
+      switch ($soid) {
+        case 1:
+          //this is the NONE option
+          return false;
+          break;
+        case 2:
+          if (!empty($row->type)) {
+            $base_trigger = str_replace("key_doc_id", "key_prac_id", $base_trigger);
+            $base_trigger = str_replace("key_level/3", "key_level/2", $base_trigger);
+          }
+          break;
+        case 4:
+          $class_name = 'req-appointment';
+          //do we need to replace this on each site?
+          $req_appointment_dest = theme_get_setting('request_appointment_button');
+          $button_label = '';
+          break;
+      }
+      $base_arguments = $schedule_option['fields']['arguments'];
+      if (!empty($base_trigger)) {
+        $url_string = _build_url_string($base_trigger, $option_fields);
+      } else {
+        //this is broken
+      }
+      //create button
+      if (!empty($url_string)) {
+        $output = $url_string;
+        if (substr($url_string, 0, 4) === "http" || substr($url_string, 0, 1) === "/") {
+          $href = $url_string;
+          $onclick = '';
+          if (empty($label)) {
+            $label = 'Request Appointment';
+          }
+        } else {
+          $href = 'javascript:void(0);';
+          if (empty($label)) {
+            $label = 'Schedule Online Now';
+          }
+          $onclick = $url_string;
+        }
+        //how do we manage button labels?
+        //Book Appointment
+        //Schedule Online Now
+        //REQUEST APPOINTMENT
+        if (!empty($schedule_option['fields']['target'])) {
+          $target_string = $schedule_option['fields']['target'];
+        }
+
+        return '<a class="btn btn--primary ' . $class_name . '" href="' . $href . '" onclick="' . $onclick . '" target="' . $target_string . '">' . $label . '</a>';
+      }
+    } else {
+      $output .= "Webform";
+      //no doc asap data, default to request form
+      //add check in for drush script
+      /*$req_appointment_dest = theme_get_setting('request_appointment_button');
+      $physician_name = $row->title;
+      $physician_creds = '';
+      if (!empty($row->physician_credentials)) {
+        $physician_creds = " " . $row->physician_credentials[0]["value"];
+      }
+      $req_appointment_dest .= "?physician-id=" . $nid[0]['value'] . "&physician-name=" . $physician_name . $physician_creds;
+
+      return "<a class='btn btn--primary req-appointment' href='{$req_appointment_dest}'>Request Appointment</a>";*/
+    }
+  }
+}
+
+function _get_schedule_option_array($args, $default_value = null) {
+  $result = _mysql_select($args);
+  foreach ($result as $record) {
+    if (!empty($record->arguments)) {
+      $fields = unserialize($record->arguments);
+    }
+    $option_array = [
+      'label' => $record->label,
+      'fields' => $fields,
+    ];
+    return $option_array;
+  }
+}
+
+function _build_url_string($trigger = null, $arguments = null) {
+  preg_match_all('/{([^}]+)}/', $trigger, $matches, PREG_SET_ORDER);
+  foreach ($matches as $match) {
+    switch ($match[1]) {
+      case 'argument1':
+        if (is_string($arguments[0])) {
+          $trigger = preg_replace('/' . $match[0] . '/', $arguments[0], $trigger, 1);
+        }
+        break;
+      case 'argument2':
+        if (is_string($arguments[1])) {
+          $trigger = preg_replace('/' . $match[0] . '/', $arguments[1], $trigger, 1);
+        }
+        break;
+      case 'argument3':
+        if (is_string($arguments[2])) {
+          $trigger = preg_replace('/' . $match[0] . '/', $arguments[2], $trigger, 1);
+        }
+        break;
+      default:
+        break;
+    }
+  }
+  return $trigger;
+}
+
+//centralize DB queries for use across entire module
+function _mysql_select($args = null) {
+  $database = \Drupal::database();
+  $query = $database->select('ipm_scheduling_optionality', 'iso')
+    ->fields('iso', ['soid', 'label', 'arguments', 'created', 'changed', 'uid']);
+  if (!empty($args['option_id'])) {
+    $query->condition('iso.soid', $args['option_id'], '=');
+  }
+  return $query->execute();
+}
+
+function _mysql_insert($option = null) {
+  $database = \Drupal::database();
+  $query = $database->insert('ipm_scheduling_optionality')
+    ->fields([
+      'label' => $option['label'],
+      'arguments' => serialize($option['arguments_array']),
+      'created' => \Drupal::time()->getRequestTime(),
+      'uid' => \Drupal::currentUser()->id(),
+    ])
+    ->execute();
+
+}
+
+//deprecated interior process functions
+function set_docasap_id($docasap_id, $key, $key_level, $button_label) {
+  list($docasap_id,$docasap_trigger) = array_pad(explode(":",$docasap_id), 2, null);
+  if (!is_numeric($docasap_trigger)) {
+    $docasap_trigger = 1;
+  }
+  $doc_args = array(
+    "key" => $key,
+    "docasap_id" => $docasap_id,
+    "key_level" => $key_level,//3
+    "docasap_trigger" => $docasap_trigger,//hide location (1 default, 0)
+    "button_label" => $button_label
+    //key_partner_code/UHSIPM
+  );
+  return '<a class="btn btn--primary find-doc" href="javascript:void(0);" onclick="show_docasap_cobranding_iframe(document,\''.$doc_args['key'].'/' . $doc_args['docasap_id'] . '/key_level/'.$doc_args['key_level'].'/key_map/0/hide_header/1/hide_footer/1/hide_insurance/1/hide_location/'.$doc_args['docasap_trigger'].'/hide_profile_infoset/0/hide_info_mssg/0/hide_profile/1/hide_partner_alert/1/hide_other_provider/1/key_type/POPUP/hide_phone/1/hide_profile_pic/1/hide_star_rating/1/key_partner_code/UHSIPM/key_mobile_inline_button/1/hide_visitreason_other_providers/0/iframeWidth/800/iframeHeight/500\')">'.$doc_args['button_label'].'</a>';
+}
+
+function process_docasap_field($row) {
+  $docasap_id = $row->_entity->get('field_docasap_practice_id')->getValue();
+  $nid = $row->_entity->get('nid')->getValue();
+  if (count($docasap_id)) {
+    $docasap_id = $docasap_id[0]['value'];
+  }
+  if (!empty($docasap_id)) {
+    return set_docasap_id($docasap_id,'key_doc_id',3,'Schedule Online Now');
+  } else {
+    $req_appointment_dest = theme_get_setting('request_appointment_button');
+    $physician_name = $row->title;
+    $physician_creds = '';
+    if (!empty($row->physician_credentials)) {
+      $physician_creds = " " . $row->physician_credentials[0]["value"];
+    }
+    $req_appointment_dest .= "?physician-id=" . $nid[0]['value'] . "&physician-name=" . $physician_name . $physician_creds;
+
+    return "<a class='btn btn--primary req-appointment' href='{$req_appointment_dest}'>Request Appointment</a>";
+  }
+}

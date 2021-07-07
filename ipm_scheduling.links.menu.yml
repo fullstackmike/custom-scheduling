@@ -1,0 +1,13 @@
+ipm_scheduling.admin:
+  title: 'UHS IPM Scheduling Optionality Settings'
+  route_name: ipm_scheduling.admin
+  description: 'controls custom settings'
+  parent: system.admin_config_services
+  weight: 100
+
+ipm_scheduling.import:
+  title: 'UHS IPM Scheduling Optionality Import'
+  route_name: ipm_scheduling.import
+  description: 'Custom Import Service'
+  parent: ipm_scheduling.admin
+  weight: 100

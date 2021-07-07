@@ -1,0 +1,90 @@
+<?php
+
+function ipm_scheduling_schema() {
+  $schema['ipm_scheduling_optionality'] = [
+    'description' => 'The base table for nodes.',
+    'fields' => array(
+      'soid' => array(
+        'description' => 'The primary identifier for a option.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE),
+      'label' => array(
+        'description' => 'The label of this option.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => ''),
+      'arguments' => array(
+        'description' => 'The Arguments for this option.',
+        'type' => 'blob',
+        'size' => 'normal', // normal / big
+        'not null' => FALSE),
+      'created' => array(
+        'description' => 'The Unix timestamp when the option was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0),
+      'changed' => array(
+        'description' => 'The Unix timestamp when the option was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0),
+      'uid' => array(
+        'description' => 'Author of the Option.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE),
+    ),
+    'primary key' => array('soid'),
+  ];
+  return $schema;
+}
+
+function ipm_scheduling_install() {
+  //insert records
+  $default_options = [
+    [
+      'label' => '-None-',
+      'arguments_array' => [
+        'trigger' => '',
+        'arguments' => [],
+      ]
+    ],
+    [
+      'label' => 'Doc ASAP',
+      'arguments_array' => [
+        "trigger" => "show_docasap_cobranding_iframe(document,'key_doc_id/{argument1}/key_level/3/key_map/0/hide_header/1/hide_footer/1/hide_insurance/1/hide_location/{argument3}/hide_profile_infoset/0/hide_info_mssg/0/hide_profile/1/hide_partner_alert/1/hide_other_provider/1/key_type/POPUP/hide_phone/1/hide_profile_pic/1/hide_star_rating/1/key_partner_code/{argument2}/key_mobile_inline_button/1/hide_visitreason_other_providers/0/iframeWidth/800/iframeHeight/500')",
+        "button_label" => "Schedule Online Now",
+        "button_style" => "find-doc",
+        "arguments" => ['Doc ASAP ID','Partner Code','Hide Location'],
+      ]
+    ],
+    [
+      'label' => 'eClinicalWorks',
+      'arguments_array' => [
+        'trigger' => 'https://healow.com/apps/provider/{argument1}',
+        'target'  => '_blank',
+        "button_label" => "Schedule Online Now",
+        "button_style" => "find-doc",
+        'arguments' => ['Doctor ID (i.e. dina-winograd-1440400)','',''],
+      ]
+    ],
+    [
+      'label' => 'Request Appointment Webform',
+      'arguments_array' => [
+        'trigger' => '/request-appointment?physician-id={argument1}&physician-name={argument2}',
+        'button_label' => 'Request Appointment',
+        'button_style' => 'req-appointment',
+        'arguments' => ['Physician ID','Physician Name',''],
+      ]
+    ],
+  ];
+  foreach($default_options AS $key => $option) {
+    _mysql_insert($option);
+  }
+}
+
+function ipm_scheduling_uninstall() {
+  \Drupal::database()->schema()->dropTable('ipm_scheduling_optionality');
+}

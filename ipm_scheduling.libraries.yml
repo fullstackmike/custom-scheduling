@@ -1,0 +1,15 @@
+doc-asap:
+  version: 1.x
+  css:
+    theme:
+      https://docasap.com/l_css/white-label.css: { type: external }
+  js:
+    https://docasap.com/l_js/white-label.js: { type: external }
+    https://docasap.com/l_js/environment.js: { type: external }
+admin_js:
+  version: 1.6
+  js:
+    js/ipm_scheduling_admin.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal

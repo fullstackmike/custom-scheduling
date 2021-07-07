@@ -1,0 +1,28 @@
+ipm_scheduling.admin:
+  path: '/admin/config/system/scheduling'
+  defaults:
+    _form: '\Drupal\ipm_scheduling\Form\SettingsForm'
+    _title: 'Scheduling Configuration'
+  requirements:
+    _permission: 'administer site configuration'
+ipm_scheduling.import:
+  path: '/admin/config/system/scheduling/import'
+  defaults:
+    _form: '\Drupal\ipm_scheduling\Form\ImportForm'
+    _title: 'Scheduling Import'
+  requirements:
+    _permission: 'administer site configuration'
+ipm_scheduling.edit_option:
+  path: '/admin/config/system/scheduling/{option_id}/edit'
+  defaults:
+    _form: '\Drupal\ipm_scheduling\Form\OptionEditForm'
+    _title: 'Scheduling Option Modification'
+  requirements:
+    _permission: 'administer site configuration'
+ipm_scheduling.delete_option:
+  path: '/admin/config/system/scheduling/{option_id}/delete'
+  defaults:
+    _form: '\Drupal\ipm_scheduling\Form\OptionDeleteForm'
+    _title: 'Scheduling Option Modification'
+  requirements:
+    _permission: 'administer site configuration'

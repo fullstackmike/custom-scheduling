@@ -1,0 +1,8 @@
+name: UHS Scheduling Optionality
+description: Creates and controls custom Scheduling options for Physicians, Locations or Custom Block
+package: Custom
+
+type: module
+core: 8.x
+
+configure: ipm_scheduling.settings

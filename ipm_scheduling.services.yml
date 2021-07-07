@@ -1,0 +1,10 @@
+#services:
+#  ipm_scheduling.event_subscriber:
+#    class: Drupal\ipm_scheduling\EventSubscriber\IPMSchedulingSubscriber
+#    tags:
+#      - {name: event_subscriber}
+services:
+  ipm_schduling.commands:
+    class: \Drupal\ipm_scheduling\Commands\DrushCustomCommands
+    tags:
+      - { name: drush.command }
